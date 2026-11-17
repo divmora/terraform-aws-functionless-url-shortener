@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.tool }} ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Minimum supported versions (required_version >= 1.6)
+          - { tool: terraform, version: "1.6.6" }
+          - { tool: tofu, version: "1.6.3" }
+          # Latest releases
+          - { tool: terraform, version: "latest" }
+          - { tool: tofu, version: "latest" }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Terraform
+        if: matrix.tool == 'terraform'
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ matrix.version }}
+          terraform_wrapper: false
+
+      - name: Set up OpenTofu
+        if: matrix.tool == 'tofu'
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: ${{ matrix.version }}
+          tofu_wrapper: false
+
+      - name: Format check
+        run: ${{ matrix.tool }} fmt -check -recursive -diff
+
+      - name: Init (no backend)
+        run: ${{ matrix.tool }} init -backend=false -input=false
+
+      - name: Validate
+        run: ${{ matrix.tool }} validate
+
+      - name: Validate examples
+        run: |
+          shopt -s nullglob
+          for d in examples/*/; do
+            [ -n "$(ls "$d"*.tf 2>/dev/null)" ] || continue
+            echo "::group::$d"
+            ${{ matrix.tool }} -chdir="$d" init -backend=false -input=false
+            ${{ matrix.tool }} -chdir="$d" validate
+            echo "::endgroup::"
+          done
+
+      - name: Unit tests (mock providers)
+        # mock_provider needs Terraform >= 1.7 / OpenTofu >= 1.8, so tests run on latest only.
+        if: matrix.version == 'latest' && hashFiles('tests/*.tftest.hcl') != ''
+        run: ${{ matrix.tool }} test
+
+  tflint:
+    name: tflint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: terraform-linters/setup-tflint@v6
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - run: tflint --recursive --format compact
