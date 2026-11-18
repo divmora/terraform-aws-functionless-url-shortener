@@ -47,3 +47,18 @@ output "table_arn" {
   description = "ARN of the DynamoDB link table."
   value       = one(aws_dynamodb_table.links[*].arn)
 }
+
+output "alarm_topic_arn" {
+  description = "SNS topic receiving API Gateway and DynamoDB alarm notifications."
+  value       = one(aws_sns_topic.alarms[*].arn)
+}
+
+output "cloudfront_alarm_topic_arn" {
+  description = "SNS topic in us-east-1 receiving CloudFront alarm notifications."
+  value       = one(aws_sns_topic.cloudfront_alarms[*].arn)
+}
+
+output "dashboard_url" {
+  description = "CloudWatch dashboard URL (null when enable_dashboard = false)."
+  value       = local.enabled && var.enable_dashboard ? "https://${local.region}.console.aws.amazon.com/cloudwatch/home?region=${local.region}#dashboards/dashboard/${one(aws_cloudwatch_dashboard.this[*].dashboard_name)}" : null
+}
