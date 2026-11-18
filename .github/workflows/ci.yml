@@ -43,6 +43,11 @@ jobs:
       - name: Format check
         run: ${{ matrix.tool }} fmt -check -recursive -diff
 
+      - name: Hide tests on minimum versions
+        # 1.6 can't parse mock_provider blocks in tests/, and init reads that directory.
+        if: matrix.version != 'latest'
+        run: mv tests "$RUNNER_TEMP/tests"
+
       - name: Init (no backend)
         run: ${{ matrix.tool }} init -backend=false -input=false
 
@@ -64,6 +69,18 @@ jobs:
         # mock_provider needs Terraform >= 1.7 / OpenTofu >= 1.8, so tests run on latest only.
         if: matrix.version == 'latest' && hashFiles('tests/*.tftest.hcl') != ''
         run: ${{ matrix.tool }} test
+
+  api-sync:
+    name: API template in sync with SAM api.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fetch SAM api.yaml (main)
+        run: curl -fsSL -o /tmp/sam-api.yaml https://raw.githubusercontent.com/divmora/functionless-url-shortener/main/api.yaml
+      - name: Check rendered template
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/render_api_template.py --check /tmp/sam-api.yaml
 
   tflint:
     name: tflint

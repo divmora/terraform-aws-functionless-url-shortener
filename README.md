@@ -33,8 +33,12 @@ provider "aws" {
 
 module "url_shortener" {
   source = "divmora/functionless-url-shortener/aws"
+  # version = "x.x.x"
 
-  name   = "url-shortener"
+  namespace = "eg"
+  stage     = "prod"
+  name      = "shortener"
+
   org_id = "o-xxxxxxxxxx"
 
   providers = {
@@ -44,7 +48,53 @@ module "url_shortener" {
 }
 ```
 
+This module follows [Cloud Posse](https://github.com/cloudposse) conventions: naming, tagging and the `enabled` flag come from [`context.tf`](context.tf) ([cloudposse/label/null](https://github.com/cloudposse/terraform-null-label)). Pass `context = module.this.context` from a parent module, or set `namespace`, `tenant`, `environment`, `stage`, `name` and `attributes` directly. The example above creates resources such as `eg-prod-shortener-api` and `eg-prod-shortener-links`. Set `enabled = false` to create nothing.
+
+See [`examples/complete`](examples/complete) for a full example.
+
+### Prerequisite: API Gateway CloudWatch Logs role
+
+The stage enables **INFO execution logging and data tracing** (same as the SAM version). API Gateway can only write those logs if the account has a CloudWatch Logs role configured in its API Gateway settings (once per account and region). If yours doesn't, set one up, for example:
+
+```hcl
+resource "aws_iam_role" "apigw_cloudwatch" {
+  name = "api-gateway-cloudwatch-logs"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "apigateway.amazonaws.com" } }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "apigw_cloudwatch" {
+  role       = aws_iam_role.apigw_cloudwatch.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+resource "aws_api_gateway_account" "this" {
+  cloudwatch_role_arn = aws_iam_role.apigw_cloudwatch.arn
+}
+```
+
+> [!NOTE]
+> Data tracing logs full request and response payloads to CloudWatch Logs.
+
 Manage links with the [`shorten` CLI](https://github.com/divmora/functionless-url-shortener-cli) using `--endpoint` set to the module's `management_api_endpoint` output.
+
+## Development
+
+`templates/api.yaml.tftpl` is generated from the SAM repo's [`api.yaml`](https://github.com/divmora/functionless-url-shortener/blob/main/api.yaml) so both versions share the same API and VTL mapping templates. CI fails if they drift. To regenerate:
+
+```bash
+python3 scripts/render_api_template.py ../functionless-url-shortener/api.yaml
+```
+
+Run checks with Terraform and OpenTofu:
+
+```bash
+terraform fmt -recursive && terraform init -backend=false && terraform validate && terraform test
+tofu fmt -recursive && tofu init -backend=false && tofu validate && tofu test
+tflint --init && tflint --recursive
+```
 
 ## License
 
