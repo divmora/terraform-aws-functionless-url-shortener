@@ -70,6 +70,23 @@ See [`examples/complete`](examples/complete) for a full example.
 
 Short URLs returned by the API then use `https://<domain_alias>` unless `url_prefix` is set. The domain can be added to an existing deployment later; the distribution is updated in place.
 
+### Monitoring
+
+| Alarm | Metric | Fires when (default) | Variable |
+| :--- | :--- | :--- | :--- |
+| `<id> API 4xx` / `API 5xx` | `AWS/ApiGateway` `4XXError` / `5XXError` (`ApiName=<id>-api`, `Stage=Prod`) | Error rate (Average) > 1% over 1 min | `api_4xx_error_rate_threshold`, `api_5xx_error_rate_threshold` |
+| `<id> API Latency` | `AWS/ApiGateway` `Latency` | p99 > 75 ms over 5 min | `api_latency_p99_threshold_ms` |
+| `<id> DynamoDB SystemErrors` | `AWS/DynamoDB` `SystemErrors` summed over `GetItem`, `UpdateItem`, `DeleteItem` | ≥ 1/min in 2 of 5 minutes | `dynamodb_system_errors_threshold` |
+| `<id> CloudFront Error Rate` (us-east-1) | `AWS/CloudFront` `TotalErrorRate` (`Region=Global`) | Average > 5% over 5 min | `cloudfront_error_rate_threshold` |
+| `<id> CloudFront Cache Hit Rate` (us-east-1, opt-in) | `AWS/CloudFront` `CacheHitRate` | Average ≤ 80% for 15 min | `cloudfront_cache_hit_rate_threshold` |
+
+Defaults match the SAM template. CloudFront publishes metrics only in **us-east-1**, so its alarms and their SNS topic are created through the `aws.us_east_1` provider. Regional alarms notify `alarm_topic_arn`, CloudFront alarms notify `cloudfront_alarm_topic_arn`; set `alarm_email` to subscribe an address to both (confirm both emails). Missing data (no traffic) is treated as OK.
+
+> [!TIP]
+> The public redirect endpoints see bot and scanner traffic, and `/api` rejects unsigned calls with 403, so the 1% 4xx default can be noisy. Raise `api_4xx_error_rate_threshold` (e.g. `0.25`) for production.
+
+`enable_cloudfront_additional_metrics = true` turns on CloudFront additional metrics (billed as CloudWatch custom metrics) and the cache hit alarm. `enable_dashboard` (default `true`) creates a CloudWatch dashboard; see the `dashboard_url` output.
+
 ### Prerequisite: API Gateway CloudWatch Logs role
 
 The stage enables **INFO execution logging and data tracing** (same as the SAM version). API Gateway can only write those logs if the account has a CloudWatch Logs role configured in its API Gateway settings (once per account and region). If yours doesn't, set one up, for example:

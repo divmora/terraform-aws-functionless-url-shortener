@@ -8,6 +8,7 @@ Terraform/OpenTofu port of [divmora/functionless-url-shortener](https://github.c
 - **Zero compute.** No Lambda or containers on the request path.
 - **CloudFront monitoring runs through the `aws.us_east_1` provider alias**; CloudFront metrics exist only in us-east-1 with the `Region=Global` dimension.
 - Before adding or changing a CloudWatch alarm, verify the metric's dimensions in the AWS docs (e.g. DynamoDB `SystemErrors` exists only per `TableName`+`Operation`).
+- Alarm thresholds are variables whose defaults match the SAM template; keep both repos in step when changing a default.
 
 ## Cloud Posse conventions
 - `context.tf` is copied verbatim from `cloudposse/terraform-null-label` (exports/context.tf, 0.25.0). Never edit it; `examples/complete/context.tf` is the same copy.

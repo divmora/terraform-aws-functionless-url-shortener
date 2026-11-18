@@ -14,6 +14,12 @@ mock_provider "aws" {
     }
   }
 
+  mock_resource "aws_sns_topic" {
+    defaults = {
+      arn = "arn:aws:sns:ap-south-1:123456789012:eg-test-shortener-alarms"
+    }
+  }
+
   mock_data "aws_iam_policy_document" {
     defaults = {
       json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
@@ -23,6 +29,12 @@ mock_provider "aws" {
 
 mock_provider "aws" {
   alias = "us_east_1"
+
+  mock_resource "aws_sns_topic" {
+    defaults = {
+      arn = "arn:aws:sns:us-east-1:123456789012:eg-test-shortener-cloudfront-alarms"
+    }
+  }
 }
 
 variables {
