@@ -3,7 +3,8 @@ locals {
 
   # Region taken from the table ARN (arn:aws:dynamodb:<region>:...): works on AWS provider v5
   # and v6 without the deprecated aws_region.name attribute.
-  region = try(split(":", aws_dynamodb_table.links[0].arn)[3], null)
+  # Empty when enabled = false.
+  region = try(split(":", aws_dynamodb_table.links[0].arn)[3], "")
 
   # Mirrors the SAM Fn::If chain for shortUrlPrefix (custom domain fallback added in M2).
   short_url_prefix = var.url_prefix

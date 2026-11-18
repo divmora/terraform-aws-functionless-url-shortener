@@ -4,7 +4,7 @@ locals {
   # try(..., "") keeps templatefile() happy when enabled = false (no resources exist).
   api_body = templatefile("${path.module}/templates/api.yaml.tftpl", {
     api_name                 = module.api_label.id
-    region                   = try(local.region, "")
+    region                   = local.region
     table_name               = try(aws_dynamodb_table.links[0].name, "")
     read_role_arn            = try(aws_iam_role.ddb_read[0].arn, "")
     crud_role_arn            = try(aws_iam_role.ddb_crud[0].arn, "")
