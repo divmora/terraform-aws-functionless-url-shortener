@@ -33,8 +33,12 @@ provider "aws" {
 
 module "url_shortener" {
   source = "divmora/functionless-url-shortener/aws"
+  # version = "x.x.x"
 
-  name   = "url-shortener"
+  namespace = "eg"
+  stage     = "prod"
+  name      = "shortener"
+
   org_id = "o-xxxxxxxxxx"
 
   providers = {
@@ -43,6 +47,10 @@ module "url_shortener" {
   }
 }
 ```
+
+This module follows [Cloud Posse](https://github.com/cloudposse) conventions: naming, tagging and the `enabled` flag come from [`context.tf`](context.tf) ([cloudposse/label/null](https://github.com/cloudposse/terraform-null-label)). Pass `context = module.this.context` from a parent module, or set `namespace`, `tenant`, `environment`, `stage`, `name` and `attributes` directly. The example above creates resources such as `eg-prod-shortener-api` and `eg-prod-shortener-links`. Set `enabled = false` to create nothing.
+
+See [`examples/complete`](examples/complete) for a full example.
 
 ### Prerequisite: API Gateway CloudWatch Logs role
 

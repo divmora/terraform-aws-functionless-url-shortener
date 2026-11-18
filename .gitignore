@@ -7,7 +7,7 @@ crash.log
 crash.*.log
 *.tfvars
 *.tfvars.json
-!examples/**/*.tfvars.example
+!examples/**/fixtures.*.tfvars
 override.tf
 override.tf.json
 *_override.tf

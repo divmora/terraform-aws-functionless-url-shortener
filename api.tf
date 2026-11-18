@@ -1,31 +1,36 @@
 ##   REST API defined by the shared OpenAPI/VTL template (see scripts/render_api_template.py).
 
 locals {
+  # try(..., "") keeps templatefile() happy when enabled = false (no resources exist).
   api_body = templatefile("${path.module}/templates/api.yaml.tftpl", {
-    api_name                 = local.api_name
-    region                   = local.region
-    table_name               = aws_dynamodb_table.links.name
-    read_role_arn            = aws_iam_role.ddb_read.arn
-    crud_role_arn            = aws_iam_role.ddb_crud.arn
+    api_name                 = module.api_label.id
+    region                   = try(local.region, "")
+    table_name               = try(aws_dynamodb_table.links[0].name, "")
+    read_role_arn            = try(aws_iam_role.ddb_read[0].arn, "")
+    crud_role_arn            = try(aws_iam_role.ddb_crud[0].arn, "")
     default_link_ttl_seconds = var.default_link_ttl_seconds
     short_url_prefix         = local.short_url_prefix
   })
 }
 
 resource "aws_api_gateway_rest_api" "this" {
-  name = local.api_name
+  count = local.enabled ? 1 : 0
+
+  name = module.api_label.id
   body = local.api_body
 
   endpoint_configuration {
     types = ["REGIONAL"]
   }
 
-  tags = var.tags
+  tags = module.api_label.tags
 }
 
 ##   Same statements as the SAM Auth.ResourcePolicy: public GET (redirects), and /api/* only
 ##   for principals inside the AWS Organization.
 data "aws_iam_policy_document" "api_resource_policy" {
+  count = local.enabled ? 1 : 0
+
   statement {
     effect    = "Allow"
     actions   = ["execute-api:Invoke"]
@@ -73,19 +78,23 @@ data "aws_iam_policy_document" "api_resource_policy" {
 }
 
 resource "aws_api_gateway_rest_api_policy" "this" {
-  rest_api_id = aws_api_gateway_rest_api.this.id
-  policy      = data.aws_iam_policy_document.api_resource_policy.json
+  count = local.enabled ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.this[0].id
+  policy      = data.aws_iam_policy_document.api_resource_policy[0].json
 }
 
 ##   SAM creates the deployment and stage implicitly; here a new deployment is created whenever
 ##   the API body or resource policy changes, before the old one is removed.
 resource "aws_api_gateway_deployment" "this" {
-  rest_api_id = aws_api_gateway_rest_api.this.id
+  count = local.enabled ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.this[0].id
 
   triggers = {
     redeployment = sha1(jsonencode([
       local.api_body,
-      data.aws_iam_policy_document.api_resource_policy.json,
+      data.aws_iam_policy_document.api_resource_policy[0].json,
     ]))
   }
 
@@ -97,19 +106,23 @@ resource "aws_api_gateway_deployment" "this" {
 }
 
 resource "aws_api_gateway_stage" "prod" {
-  rest_api_id          = aws_api_gateway_rest_api.this.id
-  deployment_id        = aws_api_gateway_deployment.this.id
+  count = local.enabled ? 1 : 0
+
+  rest_api_id          = aws_api_gateway_rest_api.this[0].id
+  deployment_id        = aws_api_gateway_deployment.this[0].id
   stage_name           = "Prod"
   xray_tracing_enabled = true
-  tags                 = var.tags
+  tags                 = module.api_label.tags
 }
 
 ##   Copied as-is from the SAM MethodSettings (decision: keep API logging identical).
 ##   INFO execution logging requires the account-level API Gateway CloudWatch Logs role
 ##   (aws_api_gateway_account); see README.
 resource "aws_api_gateway_method_settings" "all" {
-  rest_api_id = aws_api_gateway_rest_api.this.id
-  stage_name  = aws_api_gateway_stage.prod.stage_name
+  count = local.enabled ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.this[0].id
+  stage_name  = aws_api_gateway_stage.prod[0].stage_name
   method_path = "*/*"
 
   settings {
@@ -122,8 +135,10 @@ resource "aws_api_gateway_method_settings" "all" {
 }
 
 resource "aws_api_gateway_method_settings" "redirect" {
-  rest_api_id = aws_api_gateway_rest_api.this.id
-  stage_name  = aws_api_gateway_stage.prod.stage_name
+  count = local.enabled ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.this[0].id
+  stage_name  = aws_api_gateway_stage.prod[0].stage_name
   method_path = "{linkId}/GET"
 
   settings {

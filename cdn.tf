@@ -6,13 +6,15 @@ locals {
 }
 
 resource "aws_cloudfront_distribution" "this" {
+  count = local.enabled ? 1 : 0
+
   comment = "URL Shortener CDN"
   enabled = true
 
   origin {
     origin_id   = local.api_origin_id
-    domain_name = "${aws_api_gateway_rest_api.this.id}.execute-api.${local.region}.amazonaws.com"
-    origin_path = "/${aws_api_gateway_stage.prod.stage_name}"
+    domain_name = "${aws_api_gateway_rest_api.this[0].id}.execute-api.${local.region}.amazonaws.com"
+    origin_path = "/${aws_api_gateway_stage.prod[0].stage_name}"
 
     custom_origin_config {
       http_port              = 80
@@ -75,5 +77,5 @@ resource "aws_cloudfront_distribution" "this" {
     cloudfront_default_certificate = true
   }
 
-  tags = var.tags
+  tags = module.cdn_label.tags
 }
