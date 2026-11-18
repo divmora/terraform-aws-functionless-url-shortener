@@ -1,8 +1,8 @@
-data "aws_region" "current" {}
-
 locals {
   api_name = "${var.name}-api"
-  region   = data.aws_region.current.name
+  # Region taken from the table ARN (arn:aws:dynamodb:<region>:...): works on AWS provider v5
+  # and v6 without the deprecated aws_region.name attribute.
+  region = split(":", aws_dynamodb_table.links.arn)[3]
 
   # Mirrors the SAM Fn::If chain for shortUrlPrefix (custom domain fallback added in M2).
   short_url_prefix = var.url_prefix

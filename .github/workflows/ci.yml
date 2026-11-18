@@ -43,6 +43,11 @@ jobs:
       - name: Format check
         run: ${{ matrix.tool }} fmt -check -recursive -diff
 
+      - name: Hide tests on minimum versions
+        # 1.6 can't parse mock_provider blocks in tests/, and init reads that directory.
+        if: matrix.version != 'latest'
+        run: mv tests "$RUNNER_TEMP/tests"
+
       - name: Init (no backend)
         run: ${{ matrix.tool }} init -backend=false -input=false
 

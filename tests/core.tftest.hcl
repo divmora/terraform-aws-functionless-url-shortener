@@ -2,9 +2,15 @@
 # mock_provider requires Terraform >= 1.7 / OpenTofu >= 1.8; CI runs these on latest only.
 
 mock_provider "aws" {
-  mock_data "aws_region" {
+  mock_resource "aws_dynamodb_table" {
     defaults = {
-      name = "ap-south-1"
+      arn = "arn:aws:dynamodb:ap-south-1:123456789012:table/url-shortener-links"
+    }
+  }
+
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
     }
   }
 }
