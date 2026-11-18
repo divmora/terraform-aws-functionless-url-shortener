@@ -6,8 +6,11 @@ locals {
   # Empty when enabled = false.
   region = try(split(":", aws_dynamodb_table.links[0].arn)[3], "")
 
-  # Mirrors the SAM Fn::If chain for shortUrlPrefix (custom domain fallback added in M2).
-  short_url_prefix = var.url_prefix
+  has_domain_alias = var.domain_alias != ""
+  create_dns       = local.enabled && local.has_domain_alias && var.hosted_zone_id != ""
+
+  # Mirrors the SAM Fn::If chain for shortUrlPrefix: url_prefix, else https://<domain_alias>, else empty.
+  short_url_prefix = var.url_prefix != "" ? var.url_prefix : (local.has_domain_alias ? "https://${var.domain_alias}" : "")
 }
 
 ##   Labels (cloudposse/label/null), one per named resource

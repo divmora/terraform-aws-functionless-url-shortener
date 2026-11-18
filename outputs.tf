@@ -24,8 +24,18 @@ output "cloudfront_distribution_id" {
 }
 
 output "short_url_base" {
-  description = "Base URL for short links: `url_prefix` if set, otherwise the CloudFront domain."
+  description = "Base URL for short links: `url_prefix` if set, else `https://<domain_alias>`, else the CloudFront domain."
   value       = local.enabled ? (local.short_url_prefix != "" ? local.short_url_prefix : "https://${one(aws_cloudfront_distribution.this[*].domain_name)}") : null
+}
+
+output "dns_target" {
+  description = "When `domain_alias` is set without `hosted_zone_id`, point a CNAME for the alias at this CloudFront domain."
+  value       = local.enabled && local.has_domain_alias ? one(aws_cloudfront_distribution.this[*].domain_name) : null
+}
+
+output "dns_record_fqdns" {
+  description = "FQDNs of the Route 53 alias records created for `domain_alias` (empty unless `hosted_zone_id` is set)."
+  value       = concat(aws_route53_record.a[*].fqdn, aws_route53_record.aaaa[*].fqdn)
 }
 
 output "table_name" {

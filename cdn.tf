@@ -76,10 +76,27 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  # Custom domain (aliases + ACM certificate) is added in M2.
+  aliases = local.has_domain_alias ? [var.domain_alias] : []
+
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = !local.has_domain_alias
+    acm_certificate_arn            = local.has_domain_alias ? var.acm_certificate_arn : null
+    ssl_support_method             = local.has_domain_alias ? "sni-only" : null
+    minimum_protocol_version       = local.has_domain_alias ? "TLSv1.2_2021" : "TLSv1"
   }
 
   tags = module.cdn_label.tags
+
+  lifecycle {
+    # Replaces the SAM template Rules (Terraform 1.6 can't compare variables in validation blocks).
+    precondition {
+      condition     = !local.has_domain_alias || var.acm_certificate_arn != ""
+      error_message = "The acm_certificate_arn is required when domain_alias is set."
+    }
+
+    precondition {
+      condition     = var.hosted_zone_id == "" || local.has_domain_alias
+      error_message = "The domain_alias is required when hosted_zone_id is set."
+    }
+  }
 }

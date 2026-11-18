@@ -14,6 +14,10 @@ module "url_shortener" {
   org_id     = var.org_id
   url_prefix = var.url_prefix
 
+  domain_alias        = var.domain_alias
+  acm_certificate_arn = var.acm_certificate_arn
+  hosted_zone_id      = var.hosted_zone_id
+
   providers = {
     aws           = aws
     aws.us_east_1 = aws.us_east_1
