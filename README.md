@@ -52,6 +52,24 @@ This module follows [Cloud Posse](https://github.com/cloudposse) conventions: na
 
 See [`examples/complete`](examples/complete) for a full example.
 
+### Custom domain
+
+1. Request an ACM certificate for the hostname **in `us-east-1`** (CloudFront only accepts certificates from there) and wait until it is `ISSUED`.
+2. Set the domain inputs:
+
+   ```hcl
+   module "url_shortener" {
+     # ...
+     domain_alias        = "go.example.com"
+     acm_certificate_arn = "arn:aws:acm:us-east-1:111122223333:certificate/xxxx"
+     hosted_zone_id      = "Z0123456789ABCDEFGHIJ" # optional: creates A/AAAA alias records
+   }
+   ```
+
+3. Without `hosted_zone_id`, create a `CNAME` for the hostname pointing at the `dns_target` output.
+
+Short URLs returned by the API then use `https://<domain_alias>` unless `url_prefix` is set. The domain can be added to an existing deployment later; the distribution is updated in place.
+
 ### Prerequisite: API Gateway CloudWatch Logs role
 
 The stage enables **INFO execution logging and data tracing** (same as the SAM version). API Gateway can only write those logs if the account has a CloudWatch Logs role configured in its API Gateway settings (once per account and region). If yours doesn't, set one up, for example:

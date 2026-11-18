@@ -18,6 +18,11 @@ output "short_url_base" {
   value       = module.url_shortener.short_url_base
 }
 
+output "dns_target" {
+  description = "CNAME target for domain_alias when no hosted zone is given"
+  value       = module.url_shortener.dns_target
+}
+
 output "table_name" {
   description = "Name of the DynamoDB link table"
   value       = module.url_shortener.table_name
