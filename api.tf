@@ -27,14 +27,15 @@ resource "aws_api_gateway_rest_api" "this" {
 }
 
 ##   Same statements as the SAM Auth.ResourcePolicy: public GET (redirects), and /api/* only
-##   for principals inside the AWS Organization.
+##   for principals inside the AWS Organization. Full execution ARNs are used instead of the
+##   execute-api:/ shorthand, which API Gateway expands on save (causing a perpetual diff).
 data "aws_iam_policy_document" "api_resource_policy" {
   count = local.enabled ? 1 : 0
 
   statement {
     effect    = "Allow"
     actions   = ["execute-api:Invoke"]
-    resources = ["execute-api:/*/GET/*"]
+    resources = ["${aws_api_gateway_rest_api.this[0].execution_arn}/*/GET/*"]
 
     principals {
       type        = "*"
@@ -45,7 +46,7 @@ data "aws_iam_policy_document" "api_resource_policy" {
   statement {
     effect    = "Deny"
     actions   = ["execute-api:Invoke"]
-    resources = ["execute-api:/*/*/api/*"]
+    resources = ["${aws_api_gateway_rest_api.this[0].execution_arn}/*/*/api/*"]
 
     principals {
       type        = "*"
@@ -62,7 +63,7 @@ data "aws_iam_policy_document" "api_resource_policy" {
   statement {
     effect    = "Allow"
     actions   = ["execute-api:Invoke"]
-    resources = ["execute-api:/*/*/*"]
+    resources = ["${aws_api_gateway_rest_api.this[0].execution_arn}/*/*/*"]
 
     principals {
       type        = "*"
@@ -141,7 +142,12 @@ resource "aws_api_gateway_method_settings" "redirect" {
   stage_name  = aws_api_gateway_stage.prod[0].stage_name
   method_path = "{linkId}/GET"
 
+  # Matches what SAM deploys for this path (verified against a live SAM stack): execution
+  # logging off, metrics and data trace flags on, higher throttling for redirects.
   settings {
+    logging_level          = "OFF"
+    metrics_enabled        = true
+    data_trace_enabled     = true
     throttling_rate_limit  = 10000
     throttling_burst_limit = 4000
   }

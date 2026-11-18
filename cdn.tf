@@ -11,6 +11,10 @@ resource "aws_cloudfront_distribution" "this" {
   comment = "URL Shortener CDN"
   enabled = true
 
+  # CloudFormation defaults used by the SAM template (verified against a live SAM stack).
+  http_version    = "http1.1"
+  is_ipv6_enabled = true
+
   origin {
     origin_id   = local.api_origin_id
     domain_name = "${aws_api_gateway_rest_api.this[0].id}.execute-api.${local.region}.amazonaws.com"

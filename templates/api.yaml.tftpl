@@ -213,6 +213,12 @@ components:
       required:
       - id
       - url
+  securitySchemes:
+    SigV4:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: awsSigv4
   parameters:
     linkIdHeaderQueryStr:
       in: query
@@ -228,9 +234,3 @@ components:
       description: Short link ID for full URL
       schema:
         type: string
-securityDefinitions:
-  SigV4:
-    type: apiKey
-    name: Authorization
-    in: header
-    x-amazon-apigateway-authtype: awsSigv4

@@ -108,10 +108,16 @@ run "defaults" {
   assert {
     condition = (
       aws_api_gateway_method_settings.redirect[0].method_path == "{linkId}/GET" &&
+      one(aws_api_gateway_method_settings.redirect[0].settings).logging_level == "OFF" &&
       one(aws_api_gateway_method_settings.redirect[0].settings).throttling_rate_limit == 10000 &&
       one(aws_api_gateway_method_settings.redirect[0].settings).throttling_burst_limit == 4000
     )
     error_message = "GET /{linkId} throttling must match SAM."
+  }
+
+  assert {
+    condition     = aws_cloudfront_distribution.this[0].http_version == "http1.1" && aws_cloudfront_distribution.this[0].is_ipv6_enabled
+    error_message = "CloudFront HTTP version and IPv6 must match the SAM (CloudFormation default) values."
   }
 
   assert {
